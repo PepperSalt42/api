@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	errUserNotFound  = Error{Error: "User not found"}
-	errInvalidUserID = Error{Error: "Invalid user_id"}
+	errUserNotFound  = Error{"User not found"}
+	errInvalidUserID = Error{"Invalid user_id"}
+	errInvalidName   = Error{"Invalid name"}
 )
 
 // User contains all informations about an User
@@ -24,6 +25,10 @@ type User struct {
 
 func addUser(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
+	if name == "" {
+		renderJSON(w, http.StatusBadRequest, errInvalidName)
+		return
+	}
 	user := &User{Name: name}
 	db.Create(user)
 	renderJSON(w, http.StatusCreated, user)

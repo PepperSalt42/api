@@ -10,7 +10,12 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-var db gorm.DB
+var (
+	db gorm.DB
+
+	slackAPIToken      = os.Getenv("SLACK_API_TOKEN")
+	slackOutgoingToken = os.Getenv("SLACK_OUTGOING_TOKEN")
+)
 
 func initDB() {
 	var err error
@@ -25,10 +30,14 @@ func initDB() {
 	db.AutoMigrate(&Answer{}, &AnswerHistory{}, &Message{}, &Question{}, &User{})
 }
 
+func setRouter(r martini.Router) {
+	r.Post("/users", addUser)
+	r.Get("/users/:user_id", getUser)
+}
+
 func main() {
 	initDB()
 	m := martini.Classic()
-	m.Post("/users", addUser)
-	m.Get("/users/:user_id", getUser)
+	setRouter(m.Router)
 	m.Run()
 }
