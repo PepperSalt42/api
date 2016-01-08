@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/jinzhu/gorm"
 	"time"
+
+	"github.com/jinzhu/gorm"
 )
 
 // Question contains all informations about a question

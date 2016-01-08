@@ -1,0 +1,11 @@
+api:
+  build: .
+  ports:
+   - "3000:3000"
+  volumes:
+    - ./mysql:/var/lib/mysql
+  links:
+    - db
+db:
+  image: mariadb:10.1.10
+  env_file: .env
