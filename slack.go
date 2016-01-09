@@ -7,8 +7,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/gorilla/schema"
 )
 
 var (
@@ -30,14 +28,6 @@ type SlackCommandRequest struct {
 	ResponseURL string `schema:"response_url"`
 }
 
-// Decode decodes the http request.
-func (req *SlackCommandRequest) Decode(r *http.Request) error {
-	if err := r.ParseForm(); err != nil {
-		return err
-	}
-	return schema.NewDecoder().Decode(req, r.PostForm)
-}
-
 // SlackCommandResponse contains the data of slack command request.
 type SlackCommandResponse struct {
 	Text string `json:"text"`
@@ -45,7 +35,7 @@ type SlackCommandResponse struct {
 
 func slackCommandTV(w http.ResponseWriter, r *http.Request) {
 	var req SlackCommandRequest
-	if err := req.Decode(r); err != nil {
+	if err := decodeRequestForm(r, &req); err != nil {
 		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
 		return
 	}

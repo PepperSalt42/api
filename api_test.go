@@ -96,82 +96,82 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// func TestUsers(t *testing.T) {
-// 	defer teardown()
-// 	addTestUser(t, "name")
-// 	resp2 := DoRequest(newRequest(t, "GET", "/users/1", nil))
-// 	u := &User{}
-// 	if resp2.Code != http.StatusOK {
-// 		t.Fatal("Invalid status code:", resp2.Code)
-// 	}
-// 	if err := json.NewDecoder(resp2.Body).Decode(u); err != nil {
-// 		t.Fatal("Can't decode user:", err)
-// 	}
-// 	if u.ID != 1 || u.Name != "name" {
-// 		t.Fatal("Invalid user:", u)
-// 	}
-// }
+func TestUsers(t *testing.T) {
+	defer teardown()
+	addTestUser(t, "name")
+	resp2 := DoRequest(newRequest(t, "GET", "/users/1", nil))
+	u := &User{}
+	if resp2.Code != http.StatusOK {
+		t.Fatal("Invalid status code:", resp2.Code)
+	}
+	if err := json.NewDecoder(resp2.Body).Decode(u); err != nil {
+		t.Fatal("Can't decode user:", err)
+	}
+	if u.ID != 1 || u.Name != "name" {
+		t.Fatal("Invalid user:", u)
+	}
+}
 
-// func TestAddMessage(t *testing.T) {
-// 	defer teardown()
-// 	addTestMessage(t, "UD10923", "helloworld")
-// 	user := &User{}
-// 	if err := db.First(user, 1).Error; err != nil {
-// 		t.Fatal("Can't get user:", err)
-// 	}
-// 	if user.ID != 1 || user.SlackID != "UD10923" || user.Name != "name" || user.ImageURL != "http://localhost/image.jpg" {
-// 		t.Fatal("Invalid user:", user)
-// 	}
-// 	message := &Message{}
-// 	if err := db.First(message, 1).Error; err != nil {
-// 		t.Fatal("Can't get message:", err)
-// 	}
-// 	if message.ID != 1 || message.Message != "helloworld" {
-// 		t.Fatal("Invalid message:", message)
-// 	}
-// }
-//
-// func TestGetMessages(t *testing.T) {
-// 	defer teardown()
-// 	for i := 0; i < 10; i++ {
-// 		addTestMessage(t, "UD10923", "helloworld")
-// 	}
-// 	req := newRequest(t, "GET", "/messages", nil)
-// 	req.Header.Set(ContentType, ContentFormURLEncoded)
-// 	resp := DoRequest(req)
-// 	if resp.Code != http.StatusOK {
-// 		t.Fatal("Can't get messages:", resp.Code)
-// 	}
-//
-// 	req = newRequest(t, "GET", "/messages?from_id=5&count=2", nil)
-// 	resp = DoRequest(req)
-// 	if resp.Code != http.StatusOK {
-// 		t.Fatal("Can't get messages:", resp.Code)
-// 	}
-// 	var data []Message
-// 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-// 		t.Fatal("Can't decode json:", err)
-// 	}
-// 	if len(data) > 2 || len(data) < 2 {
-// 		t.Fatal("Wrong messages number:", len(data))
-// 	}
-// 	if data[0].ID != 6 {
-// 		t.Fatal("Incorrect message get:", data[0])
-// 	}
-// 	if data[1].ID != 7 {
-// 		t.Fatal("Incorrect message get:", data[1])
-// 	}
-// }
-//
-// func addTestMessage(t *testing.T, userID string, text string) {
-// 	params := fmt.Sprintf("token=%s&user_id=%s&text=%s", slackOutgoingToken, userID, text)
-// 	req := newRequest(t, "POST", "/messages/slack", bytes.NewBufferString(params))
-// 	req.Header.Set(ContentType, ContentFormURLEncoded)
-// 	resp1 := DoRequest(req)
-// 	if resp1.Code != http.StatusOK {
-// 		t.Fatal("Message not added:", resp1.Code)
-// 	}
-// }
+func TestAddMessage(t *testing.T) {
+	defer teardown()
+	addTestMessage(t, "UD10923", "helloworld")
+	user := &User{}
+	if err := db.First(user, 1).Error; err != nil {
+		t.Fatal("Can't get user:", err)
+	}
+	if user.ID != 1 || user.SlackID != "UD10923" || user.Name != "name" || user.ImageURL != "http://localhost/image.jpg" {
+		t.Fatal("Invalid user:", user)
+	}
+	message := &Message{}
+	if err := db.First(message, 1).Error; err != nil {
+		t.Fatal("Can't get message:", err)
+	}
+	if message.ID != 1 || message.Message != "helloworld" {
+		t.Fatal("Invalid message:", message)
+	}
+}
+
+func TestGetMessages(t *testing.T) {
+	defer teardown()
+	for i := 0; i < 10; i++ {
+		addTestMessage(t, "UD10923", "helloworld")
+	}
+	req := newRequest(t, "GET", "/messages", nil)
+	req.Header.Set(ContentType, ContentFormURLEncoded)
+	resp := DoRequest(req)
+	if resp.Code != http.StatusOK {
+		t.Fatal("Can't get messages:", resp.Code)
+	}
+
+	req = newRequest(t, "GET", "/messages?from_id=5&count=2", nil)
+	resp = DoRequest(req)
+	if resp.Code != http.StatusOK {
+		t.Fatal("Can't get messages:", resp.Code)
+	}
+	var data []Message
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		t.Fatal("Can't decode json:", err)
+	}
+	if len(data) > 2 || len(data) < 2 {
+		t.Fatal("Wrong messages number:", len(data))
+	}
+	if data[0].ID != 10 {
+		t.Fatal("Incorrect message get:", data[0])
+	}
+	if data[1].ID != 9 {
+		t.Fatal("Incorrect message get:", data[1])
+	}
+}
+
+func addTestMessage(t *testing.T, userID string, text string) {
+	params := fmt.Sprintf("token=%s&user_id=%s&text=%s", slackOutgoingToken, userID, text)
+	req := newRequest(t, "POST", "/messages/slack", bytes.NewBufferString(params))
+	req.Header.Set(ContentType, ContentFormURLEncoded)
+	resp1 := DoRequest(req)
+	if resp1.Code != http.StatusOK {
+		t.Fatal("Message not added:", resp1.Code)
+	}
+}
 
 func TestGetUsersTop(t *testing.T) {
 	defer teardown()

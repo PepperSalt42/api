@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 
-	"github.com/gorilla/schema"
 	"github.com/jinzhu/gorm"
 )
 
@@ -29,27 +28,23 @@ type GetMessagesRequest struct {
 
 // addMessage is a route that slack calls to send us new message
 func addMessage(w http.ResponseWriter, r *http.Request) {
-	var slackMessage SlackMessageRequest
-	if err := r.ParseForm(); err != nil {
+	var req SlackMessageRequest
+	if err := decodeRequestForm(r, &req); err != nil {
 		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
 		return
 	}
-	if err := schema.NewDecoder().Decode(&slackMessage, r.PostForm); err != nil {
-		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
-		return
-	}
-	if slackMessage.Token != slackOutgoingToken {
+	if req.Token != slackOutgoingToken {
 		renderJSON(w, http.StatusBadRequest, errInvalidToken)
 		return
 	}
-	user, err := getUpdateUserBySlackID(slackMessage.UserID)
+	user, err := getUpdateUserBySlackID(req.UserID)
 	if err != nil {
 		renderJSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	err = db.Create(&Message{
 		UserID:  user.ID,
-		Message: slackMessage.Text,
+		Message: req.Text,
 	}).Error
 	if err != nil {
 		renderJSON(w, http.StatusInternalServerError, err.Error())
@@ -59,18 +54,17 @@ func addMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func getMessages(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
 	req := GetMessagesRequest{
 		FromID: 0,
 		Count:  10,
 	}
-	if err := schema.NewDecoder().Decode(&req, q); err != nil {
+	if err := decodeRequestQuery(r, &req); err != nil {
 		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
 		return
 	}
-	messages := []Message{}
-	if db.Limit(req.Count).Find(&messages, "id > ?", req.FromID).Error != nil {
-		renderJSON(w, http.StatusNotFound, errUserNotFound)
+	var messages []Message
+	if db.Order("id desc").Limit(req.Count).Find(&messages, "id > ?", req.FromID).Error != nil {
+		renderJSON(w, http.StatusNotFound, errMessagesNotFound)
 		return
 	}
 	renderJSON(w, http.StatusOK, messages)

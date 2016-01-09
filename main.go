@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/go-martini/martini"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/schema"
 	"github.com/jinzhu/gorm"
 )
 
@@ -17,9 +19,10 @@ var (
 	slackOutgoingToken = os.Getenv("SLACK_OUTGOING_TOKEN")
 	slackURL           = "https://slack.com"
 
-	errInvalidToken  = Error{"Invalid token"}
-	errUserNotFound  = Error{"User not found"}
-	errInvalidUserID = Error{"Invalid user_id"}
+	errInvalidToken     = Error{"Invalid token"}
+	errInvalidUserID    = Error{"Invalid user_id"}
+	errMessagesNotFound = Error{"Messages not found"}
+	errUserNotFound     = Error{"User not found"}
 )
 
 func initDB() {
@@ -42,6 +45,17 @@ func setRouter(r martini.Router) {
 	r.Post("/messages/slack", addMessage)
 	r.Get("/messages", getMessages)
 	r.Post("/slack/commands/tv", slackCommandTV)
+}
+
+func decodeRequestForm(r *http.Request, v interface{}) error {
+	if err := r.ParseForm(); err != nil {
+		return err
+	}
+	return schema.NewDecoder().Decode(v, r.PostForm)
+}
+
+func decodeRequestQuery(r *http.Request, v interface{}) error {
+	return schema.NewDecoder().Decode(v, r.URL.Query())
 }
 
 func main() {

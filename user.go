@@ -30,7 +30,7 @@ type SlackUser struct {
 
 // SlackProfile contains the data contained in SlackUser structure
 type SlackProfile struct {
-	ImageURL string `json:"image_48"`
+	ImageURL string `json:"image_72"`
 }
 
 // AddUserRequest contains the data of add user request.
@@ -44,12 +44,8 @@ type GetUsersTopRequest struct {
 }
 
 func addUser(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
-		return
-	}
 	var req AddUserRequest
-	if err := schema.NewDecoder().Decode(&req, r.PostForm); err != nil {
+	if err := decodeRequestForm(r, &req); err != nil {
 		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
 		return
 	}
