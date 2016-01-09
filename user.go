@@ -38,6 +38,11 @@ type AddUserRequest struct {
 	Name string `schema:"name"`
 }
 
+// GetUsersTopRequest contains the data of add user request.
+type GetUsersTopRequest struct {
+	Count int `schema:"count"`
+}
+
 func addUser(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
@@ -65,6 +70,23 @@ func getUser(w http.ResponseWriter, r *http.Request, params martini.Params) {
 		return
 	}
 	renderJSON(w, http.StatusOK, user)
+}
+
+func getUsersTop(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	req := GetUsersTopRequest{
+		Count: 6,
+	}
+	if err := schema.NewDecoder().Decode(&req, q); err != nil {
+		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
+		return
+	}
+	var users []User
+	if err := db.Order("points desc").Limit(req.Count).Find(&users).Error; err != nil {
+		renderJSON(w, http.StatusNotFound, Error{err.Error()})
+		return
+	}
+	renderJSON(w, http.StatusOK, users)
 }
 
 // getUserBySlackID return an user found in DB using SlackID
