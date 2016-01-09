@@ -29,7 +29,7 @@ type SlackUser struct {
 
 // SlackProfile contains the data contained in SlackUser structure
 type SlackProfile struct {
-	ImageURL string `json:"image_72"`
+	ImageURL string `json:"image_192"`
 }
 
 // AddUserRequest contains the data of add user request.
@@ -62,24 +62,15 @@ func getUser(w http.ResponseWriter, r *http.Request, params martini.Params) {
 	renderJSON(w, http.StatusOK, user)
 }
 
-// getUserBySlackID return an user found in DB using SlackID
+// GetUserBySlackID return an user found in DB using SlackID
 // if user doesn't exist yet, we create it
-func getUpdateUserBySlackID(id string) (*User, error) {
+func GetUserBySlackID(id string) (*User, error) {
 	user, err := getUserFromSlack(id)
 	if err != nil {
 		return nil, err
 	}
-	if err := db.Where(&User{SlackID: id}).First(user).Error; err != nil {
-		if err != gorm.RecordNotFound {
-			return nil, err
-		}
-		if err := db.Create(user).Error; err != nil {
-			return nil, err
-		}
-	} else {
-		if err := db.Save(user).Error; err != nil {
-			return nil, err
-		}
+	if err := InsertOrUpdateDB(&User{SlackID: id}, user); err != nil {
+		return nil, err
 	}
 	return user, nil
 }

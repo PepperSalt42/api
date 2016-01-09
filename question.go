@@ -14,3 +14,10 @@ type Question struct {
 	RightAnswerID uint `sql:"unique"`
 	StartedAt     time.Time
 }
+
+// GetCurrentQuestion returns the current question
+func GetCurrentQuestion() (*Question, error) {
+	question := &Question{}
+	err := db.Order("started_at desc").First(question).Error
+	return question, err
+}

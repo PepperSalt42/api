@@ -62,7 +62,7 @@ func initSlackServer() {
 	m.Get("/api/users.info", slackUserInfo)
 	m.Post("/commands/1234/5678", slackCommandHandler(commandTVUsage))
 	m.Post("/commands/1234/5679", slackCommandHandler(commandTVUsage))
-	m.Post("/commands/1234/5680", slackCommandHandler(commandTVUsage))
+	m.Post("/commands/1234/5680", slackCommandHandler("Error: Can't get current question: record not found"))
 	m.Post("/commands/1234/5681", slackCommandHandler(commandTVUsage))
 	go m.RunOnAddr(":4242")
 }
@@ -82,8 +82,8 @@ func DoRequest(req *http.Request) *httptest.ResponseRecorder {
 }
 
 func teardown() {
-	db.DropTable(&Answer{}, &AnswerHistory{}, &Message{}, &Question{}, &User{})
-	db.CreateTable(&Answer{}, &AnswerHistory{}, &Message{}, &Question{}, &User{})
+	db.DropTable(&Answer{}, &AnswerEntry{}, &Message{}, &Question{}, &User{})
+	db.CreateTable(&Answer{}, &AnswerEntry{}, &Message{}, &Question{}, &User{})
 }
 
 func TestMain(m *testing.M) {

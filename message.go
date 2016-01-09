@@ -37,7 +37,7 @@ func addMessage(w http.ResponseWriter, r *http.Request) {
 		renderJSON(w, http.StatusBadRequest, errInvalidToken)
 		return
 	}
-	user, err := getUpdateUserBySlackID(req.UserID)
+	user, err := GetUserBySlackID(req.UserID)
 	if err != nil {
 		renderJSON(w, http.StatusInternalServerError, err.Error())
 		return

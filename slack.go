@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -43,7 +44,7 @@ func slackCommandTV(w http.ResponseWriter, r *http.Request) {
 		renderJSON(w, http.StatusBadRequest, errInvalidToken)
 		return
 	}
-	user, err := getUpdateUserBySlackID(req.UserID)
+	user, err := GetUserBySlackID(req.UserID)
 	if err != nil {
 		renderJSON(w, http.StatusInternalServerError, Error{err.Error()})
 		return
@@ -89,7 +90,30 @@ func slackCommandTVQuestion(req *SlackCommandRequest, user *User) *SlackCommandR
 }
 
 func slackCommandTVAnswer(req *SlackCommandRequest, user *User) *SlackCommandResponse {
-	return &SlackCommandResponse{Text: commandTVUsage}
+	resp := &SlackCommandResponse{}
+	question, err := GetCurrentQuestion()
+	if err != nil {
+		resp.Text = fmt.Sprintf("Error: Can't get current question: %v", err)
+		return resp
+	}
+	answers, err := GetAnswersByQuestionID(question.ID)
+	if err != nil {
+		resp.Text = fmt.Sprintf("Error: Can't get answers: %v", err)
+		return resp
+	}
+	answerIndex, _ := strconv.Atoi(req.Text[len("answer "):])
+	if answerIndex <= 0 || answerIndex > len(answers) {
+		resp.Text = fmt.Sprintf("Invalid answer index.\nThere is %d possible answers.\nSee help and status for more details", len(answers))
+		return resp
+	}
+	answer := answers[answerIndex]
+	answerEntry := AnswerEntry{UserID: user.ID, QuestionID: question.ID, AnswerID: answer.ID}
+	if err := InsertOrUpdateDB(answerEntry, answerEntry); err != nil {
+		resp.Text = fmt.Sprintf("Error: Can't add your answers: %v", err)
+		return resp
+	}
+	resp.Text = fmt.Sprintf("Answer Added.\n%s %s", question.Sentence, answer.Sentence)
+	return resp
 }
 
 func slackCommandTVStatus(req *SlackCommandRequest, user *User) *SlackCommandResponse {

@@ -35,7 +35,18 @@ func initDB() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.AutoMigrate(&Answer{}, &AnswerHistory{}, &Message{}, &Question{}, &User{})
+	db.AutoMigrate(&Answer{}, &AnswerEntry{}, &Message{}, &Question{}, &User{})
+}
+
+// InsertOrUpdateDB inserts or updates the value in the database.
+func InsertOrUpdateDB(query, out interface{}) error {
+	if err := db.Where(query).First(out).Error; err != nil {
+		if err != gorm.RecordNotFound {
+			return err
+		}
+		return db.Create(out).Error
+	}
+	return db.Save(out).Error
 }
 
 func setRouter(r martini.Router) {
