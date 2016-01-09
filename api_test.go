@@ -212,46 +212,46 @@ func addTestUser(t *testing.T, name string) {
 	}
 }
 
-// func TestSlackCommandHelp(t *testing.T) {
-// 	defer teardown()
-// 	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=help&response_url=http://localhost:4242/commands/1234/5678", slackOutgoingToken)
-// 	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
-// 	req.Header.Set(ContentType, ContentFormURLEncoded)
-// 	resp := DoRequest(req)
-// 	if resp.Code != http.StatusOK {
-// 		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
-// 	}
-// }
-//
-// func TestSlackCommandQuestion(t *testing.T) {
-// 	defer teardown()
-// 	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=question&response_url=http://localhost:4242/commands/1234/5679", slackOutgoingToken)
-// 	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
-// 	req.Header.Set(ContentType, ContentFormURLEncoded)
-// 	resp := DoRequest(req)
-// 	if resp.Code != http.StatusOK {
-// 		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
-// 	}
-// }
-//
-// func TestSlackCommandAnswer(t *testing.T) {
-// 	defer teardown()
-// 	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=answer&response_url=http://localhost:4242/commands/1234/5680", slackOutgoingToken)
-// 	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
-// 	req.Header.Set(ContentType, ContentFormURLEncoded)
-// 	resp := DoRequest(req)
-// 	if resp.Code != http.StatusOK {
-// 		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
-// 	}
-// }
-//
-// func TestSlackCommandStatus(t *testing.T) {
-// 	defer teardown()
-// 	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=status&response_url=http://localhost:4242/commands/1234/5681", slackOutgoingToken)
-// 	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
-// 	req.Header.Set(ContentType, ContentFormURLEncoded)
-// 	resp := DoRequest(req)
-// 	if resp.Code != http.StatusOK {
-// 		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
-// 	}
-// }
+func TestSlackCommandHelp(t *testing.T) {
+	defer teardown()
+	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=help&response_url=http://localhost:4242/commands/1234/5678", slackOutgoingToken)
+	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
+	req.Header.Set(ContentType, ContentFormURLEncoded)
+	resp := DoRequest(req)
+	if resp.Code != http.StatusOK {
+		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
+	}
+}
+
+func TestSlackCommandQuestion(t *testing.T) {
+	defer teardown()
+	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=question&response_url=http://localhost:4242/commands/1234/5679", slackOutgoingToken)
+	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
+	req.Header.Set(ContentType, ContentFormURLEncoded)
+	resp := DoRequest(req)
+	if resp.Code != http.StatusOK {
+		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
+	}
+}
+
+func TestSlackCommandAnswer(t *testing.T) {
+	defer teardown()
+	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=answer&response_url=http://localhost:4242/commands/1234/5680", slackOutgoingToken)
+	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
+	req.Header.Set(ContentType, ContentFormURLEncoded)
+	resp := DoRequest(req)
+	if resp.Code != http.StatusOK {
+		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
+	}
+}
+
+func TestSlackCommandStatus(t *testing.T) {
+	defer teardown()
+	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=status&response_url=http://localhost:4242/commands/1234/5681", slackOutgoingToken)
+	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
+	req.Header.Set(ContentType, ContentFormURLEncoded)
+	resp := DoRequest(req)
+	if resp.Code != http.StatusOK {
+		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
+	}
+}
