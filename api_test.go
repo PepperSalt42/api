@@ -31,16 +31,17 @@ func TestMain(m *testing.M) {
 
 func TestUsers(t *testing.T) {
 	defer teardown()
-	addTestUser(t, "name")
-	resp2 := DoRequest(newRequest(t, "GET", "/users/1", nil))
-	u := &User{}
-	if resp2.Code != http.StatusOK {
-		t.Fatal("Invalid status code:", resp2.Code)
+	user := &User{FirstName: "John", LastName: "Doe"}
+	db.Create(user)
+	resp := DoRequest(newRequest(t, "GET", "/users/1", nil))
+	if resp.Code != http.StatusOK {
+		t.Fatal("Invalid status code:", resp.Code)
 	}
-	if err := json.NewDecoder(resp2.Body).Decode(u); err != nil {
+	var u User
+	if err := json.NewDecoder(resp.Body).Decode(&u); err != nil {
 		t.Fatal("Can't decode user:", err)
 	}
-	if u.ID != 1 || u.Name != "name" {
+	if u.ID != 1 || u.FirstName != "John" || u.LastName != "Doe" {
 		t.Fatal("Invalid user:", u)
 	}
 }
@@ -48,12 +49,12 @@ func TestUsers(t *testing.T) {
 func TestAddMessage(t *testing.T) {
 	defer teardown()
 	addTestMessage(t, "UD10923", "helloworld")
-	user := &User{}
-	if err := db.First(user, 1).Error; err != nil {
+	u := &User{}
+	if err := db.First(u, 1).Error; err != nil {
 		t.Fatal("Can't get user:", err)
 	}
-	if user.ID != 1 || user.SlackID != "UD10923" || user.Name != "name" || user.ImageURL != "http://localhost/image.jpg" {
-		t.Fatal("Invalid user:", user)
+	if u.ID != 1 || u.SlackID != "UD10923" || u.FirstName != "John" || u.LastName != "Doe" || u.ImageURL != "http://localhost/image.jpg" {
+		t.Fatal("Invalid user:", u)
 	}
 	message := &Message{}
 	if err := db.First(message, 1).Error; err != nil {
@@ -99,13 +100,9 @@ func TestGetMessages(t *testing.T) {
 func TestGetUsersTop(t *testing.T) {
 	defer teardown()
 	for i := 0; i < 10; i++ {
-		addTestUser(t, "name")
-		user := &User{}
-		if err := db.Last(user).Error; err != nil {
-			t.Fatal("Can't get last user:", err.Error())
-		}
 		newID := fmt.Sprintf("UD%d", i)
-		if err := db.Model(user).Updates(User{Points: uint(i), SlackID: newID}).Error; err != nil {
+		user := &User{SlackID: newID, FirstName: "John", LastName: "Doe", Points: uint(i)}
+		if err := db.Create(user).Error; err != nil {
 			t.Fatal("Can't update user:", err.Error())
 		}
 	}
@@ -157,7 +154,6 @@ func TestSlackCommandAnswer(t *testing.T) {
 		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
 	}
 
-	addTestUser(t, "user1")
 	db.Create(&Question{UserID: 1, Sentence: "Help?", RightAnswerID: 1})
 	db.Create(&Answer{QuestionID: 1, Sentence: "Yes"})
 	params = fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=answer 1&response_url=http://localhost:4242/commands/1234/5701", slackOutgoingToken)
@@ -210,10 +206,11 @@ func slackUserInfo(w http.ResponseWriter, r *http.Request) {
 	}{
 		OK: true,
 		User: SlackUser{
-			ID:   "UD10923",
-			Name: "name",
+			ID: "UD10923",
 			Profile: SlackProfile{
-				ImageURL: "http://localhost/image.jpg",
+				FirstName: "John",
+				LastName:  "Doe",
+				ImageURL:  "http://localhost/image.jpg",
 			},
 		},
 	})
@@ -263,15 +260,5 @@ func addTestMessage(t *testing.T, userID string, text string) {
 	resp1 := DoRequest(req)
 	if resp1.Code != http.StatusOK {
 		t.Fatal("Message not added:", resp1.Code)
-	}
-}
-
-func addTestUser(t *testing.T, name string) {
-	params := fmt.Sprintf("name=%s", name)
-	req := newRequest(t, "POST", "/users", bytes.NewBufferString(params))
-	req.Header.Set(ContentType, ContentFormURLEncoded)
-	resp1 := DoRequest(req)
-	if resp1.Code != http.StatusCreated {
-		t.Fatal("User not created:", resp1.Code)
 	}
 }

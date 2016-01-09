@@ -50,7 +50,6 @@ func InsertOrUpdateDB(query, out interface{}) error {
 }
 
 func setRouter(r martini.Router) {
-	r.Post("/users", addUser)
 	r.Get("/users/top", getUsersTop)
 	r.Get("/users/:user_id", getUser)
 	r.Post("/messages/slack", addMessage)

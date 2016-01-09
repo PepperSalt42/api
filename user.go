@@ -15,43 +15,35 @@ import (
 // User contains all informations about an User
 type User struct {
 	gorm.Model
-	SlackID  string `sql:"unique"`
-	Name     string
-	ImageURL string
-	Points   uint
+	SlackID   string `sql:"unique"`
+	FirstName string
+	LastName  string
+	ImageURL  string
+	Points    uint
 }
 
 // SlackUser contains the data of slack command request
 type SlackUser struct {
 	ID      string       `json:"id"`
-	Name    string       `json:"name"`
 	Profile SlackProfile `json:"profile"`
 }
 
 // SlackProfile contains the data contained in SlackUser structure
 type SlackProfile struct {
-	ImageURL string `json:"image_192"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	ImageURL  string `json:"image_192"`
 }
 
 // AddUserRequest contains the data of add user request.
 type AddUserRequest struct {
-	Name string `schema:"name"`
+	FirstName string `schema:"first_name"`
+	LastName  string `schema:"last_name"`
 }
 
 // GetUsersTopRequest contains the data of add user request.
 type GetUsersTopRequest struct {
 	Count int `schema:"count"`
-}
-
-func addUser(w http.ResponseWriter, r *http.Request) {
-	var req AddUserRequest
-	if err := decodeRequestForm(r, &req); err != nil {
-		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
-		return
-	}
-	user := User{Name: req.Name}
-	db.Create(&user)
-	renderJSON(w, http.StatusCreated, &user)
 }
 
 func getUser(w http.ResponseWriter, r *http.Request, params martini.Params) {
@@ -117,9 +109,10 @@ func getUserFromSlack(id string) (*User, error) {
 		return nil, errors.New(respData.Error)
 	}
 	return &User{
-		SlackID:  respData.User.ID,
-		Name:     respData.User.Name,
-		ImageURL: respData.User.Profile.ImageURL,
-		Points:   0,
+		SlackID:   respData.User.ID,
+		FirstName: respData.User.Profile.FirstName,
+		LastName:  respData.User.Profile.LastName,
+		ImageURL:  respData.User.Profile.ImageURL,
+		Points:    0,
 	}, nil
 }
