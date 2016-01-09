@@ -45,10 +45,11 @@ func slackUserInfo(w http.ResponseWriter, r *http.Request) {
 	}{
 		OK: true,
 		User: SlackUser{
-			ID:   "UD10923",
-			Name: "name",
+			ID: "UD10923",
 			Profile: SlackProfile{
-				ImageURL: "http://localhost/image.jpg",
+				FirstName: "firstname",
+				LastName:  "lastname",
+				ImageURL:  "http://localhost/image.jpg",
 			},
 		},
 	})
@@ -98,7 +99,7 @@ func TestMain(m *testing.M) {
 
 func TestUsers(t *testing.T) {
 	defer teardown()
-	addTestUser(t, "name")
+	addTestUser(t, "firstname", "lastname")
 	resp2 := DoRequest(newRequest(t, "GET", "/users/1", nil))
 	u := &User{}
 	if resp2.Code != http.StatusOK {
@@ -107,7 +108,7 @@ func TestUsers(t *testing.T) {
 	if err := json.NewDecoder(resp2.Body).Decode(u); err != nil {
 		t.Fatal("Can't decode user:", err)
 	}
-	if u.ID != 1 || u.Name != "name" {
+	if u.ID != 1 || u.FirstName != "firstname" || u.LastName != "lastname" {
 		t.Fatal("Invalid user:", u)
 	}
 }
@@ -115,12 +116,12 @@ func TestUsers(t *testing.T) {
 func TestAddMessage(t *testing.T) {
 	defer teardown()
 	addTestMessage(t, "UD10923", "helloworld")
-	user := &User{}
-	if err := db.First(user, 1).Error; err != nil {
+	u := &User{}
+	if err := db.First(u, 1).Error; err != nil {
 		t.Fatal("Can't get user:", err)
 	}
-	if user.ID != 1 || user.SlackID != "UD10923" || user.Name != "name" || user.ImageURL != "http://localhost/image.jpg" {
-		t.Fatal("Invalid user:", user)
+	if u.ID != 1 || u.SlackID != "UD10923" || u.FirstName != "firstname" || u.LastName != "lastname" || u.ImageURL != "http://localhost/image.jpg" {
+		t.Fatal("Invalid user:", u)
 	}
 	message := &Message{}
 	if err := db.First(message, 1).Error; err != nil {
@@ -176,7 +177,7 @@ func addTestMessage(t *testing.T, userID string, text string) {
 func TestGetUsersTop(t *testing.T) {
 	defer teardown()
 	for i := 0; i < 10; i++ {
-		addTestUser(t, "name")
+		addTestUser(t, "firstname", "lastname")
 		user := &User{}
 		if err := db.Last(user).Error; err != nil {
 			t.Fatal("Can't get last user:", err.Error())
@@ -202,8 +203,8 @@ func TestGetUsersTop(t *testing.T) {
 	}
 }
 
-func addTestUser(t *testing.T, name string) {
-	params := fmt.Sprintf("name=%s", name)
+func addTestUser(t *testing.T, firstName string, lastName string) {
+	params := fmt.Sprintf("first_name=%s&last_name=%s", firstName, lastName)
 	req := newRequest(t, "POST", "/users", bytes.NewBufferString(params))
 	req.Header.Set(ContentType, ContentFormURLEncoded)
 	resp1 := DoRequest(req)
