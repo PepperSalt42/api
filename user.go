@@ -8,13 +8,8 @@ import (
 	"strconv"
 
 	"github.com/go-martini/martini"
+	"github.com/gorilla/schema"
 	"github.com/jinzhu/gorm"
-)
-
-var (
-	errUserNotFound  = Error{"User not found"}
-	errInvalidUserID = Error{"Invalid user_id"}
-	errInvalidName   = Error{"Invalid name"}
 )
 
 // User contains all informations about an User
@@ -38,15 +33,24 @@ type SlackProfile struct {
 	ImageURL string `json:"image_48"`
 }
 
+// AddUserRequest contains the data of add user request.
+type AddUserRequest struct {
+	Name string `schema:"name"`
+}
+
 func addUser(w http.ResponseWriter, r *http.Request) {
-	name := r.FormValue("name")
-	if name == "" {
-		renderJSON(w, http.StatusBadRequest, errInvalidName)
+	if err := r.ParseForm(); err != nil {
+		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
 		return
 	}
-	user := &User{Name: name}
-	db.Create(user)
-	renderJSON(w, http.StatusCreated, user)
+	var req AddUserRequest
+	if err := schema.NewDecoder().Decode(&req, r.PostForm); err != nil {
+		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
+		return
+	}
+	user := User{Name: req.Name}
+	db.Create(&user)
+	renderJSON(w, http.StatusCreated, &user)
 }
 
 func getUser(w http.ResponseWriter, r *http.Request, params martini.Params) {
