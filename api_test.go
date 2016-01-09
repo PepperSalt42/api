@@ -110,15 +110,25 @@ func TestGetUsersTop(t *testing.T) {
 	req.Header.Set(ContentType, ContentFormURLEncoded)
 	resp := DoRequest(req)
 	if resp.Code != http.StatusOK {
-		t.Fatal("Can't get users top:", resp)
+		t.Fatal("Can't get users top:", resp.Code)
 	}
 	var users []User
 	if err := json.NewDecoder(resp.Body).Decode(&users); err != nil {
 		t.Fatal("Can't decode json:", err)
 	}
-	fmt.Println("Content:", users)
 	if len(users) != 6 {
 		t.Fatal("Wrong users number:", len(users))
+	}
+}
+
+func TestGetCurrentQuestion(t *testing.T) {
+	defer teardown()
+	db.Create(&Question{UserID: 1, Sentence: "Help?", RightAnswerID: 1})
+	req := newRequest(t, "GET", "/questions/current", nil)
+	req.Header.Set(ContentType, ContentFormURLEncoded)
+	resp := DoRequest(req)
+	if resp.Code != http.StatusOK {
+		t.Fatal("Can't get current question:", resp)
 	}
 }
 

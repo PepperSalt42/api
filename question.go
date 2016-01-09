@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -13,6 +14,15 @@ type Question struct {
 	Sentence      string
 	RightAnswerID uint
 	StartedAt     time.Time
+}
+
+// getCurrentQuestion returns current question
+func getCurrentQuestion(w http.ResponseWriter, r *http.Request) {
+	question, err := GetCurrentQuestion()
+	if err != nil {
+		renderJSON(w, http.StatusNotFound, errCurQuestionNotFound)
+	}
+	renderJSON(w, http.StatusOK, question)
 }
 
 // GetCurrentQuestion returns the current question

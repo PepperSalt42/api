@@ -19,10 +19,11 @@ var (
 	slackOutgoingToken = os.Getenv("SLACK_OUTGOING_TOKEN")
 	slackURL           = "https://slack.com"
 
-	errInvalidToken     = Error{"Invalid token"}
-	errInvalidUserID    = Error{"Invalid user_id"}
-	errMessagesNotFound = Error{"Messages not found"}
-	errUserNotFound     = Error{"User not found"}
+	errInvalidToken        = Error{"Invalid token"}
+	errInvalidUserID       = Error{"Invalid user_id"}
+	errMessagesNotFound    = Error{"Messages not found"}
+	errUserNotFound        = Error{"User not found"}
+	errCurQuestionNotFound = Error{"Current question not found"}
 )
 
 func initDB() {
@@ -51,6 +52,7 @@ func setRouter(r martini.Router) {
 	r.Get("/users/:user_id", getUser)
 	r.Post("/messages/slack", addMessage)
 	r.Get("/messages", getMessages)
+	r.Get("/questions/current", getCurrentQuestion)
 	r.Post("/slack/commands/tv", slackCommandTV)
 }
 
