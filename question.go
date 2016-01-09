@@ -22,6 +22,7 @@ func getCurrentQuestion(w http.ResponseWriter, r *http.Request) {
 	question, err := GetCurrentQuestion()
 	if err != nil {
 		renderJSON(w, http.StatusNotFound, errCurQuestionNotFound)
+		return
 	}
 	renderJSON(w, http.StatusOK, question)
 }
