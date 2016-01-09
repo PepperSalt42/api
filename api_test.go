@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +18,29 @@ const (
 )
 
 var mc *martini.ClassicMartini
+
+func initSlackServer() {
+	slackOutgoingToken = "legitOutgoingToken42"
+	slackAPIToken = "legitAPIToken42"
+	slackURL = "http://localhost:4242"
+	m := martini.Classic()
+	m.Get("/api/users.info", func(w http.ResponseWriter, r *http.Request) {
+		renderJSON(w, http.StatusOK, struct {
+			OK   bool      `json:"ok"`
+			User SlackUser `json:"user"`
+		}{
+			OK: true,
+			User: SlackUser{
+				ID:   "UD10923",
+				Name: "name",
+				Profile: SlackProfile{
+					ImageURL: "http://localhost/image.jpg",
+				},
+			},
+		})
+	})
+	go m.RunOnAddr(":4242")
+}
 
 func newRequest(t *testing.T, method, urlStr string, body io.Reader) *http.Request {
 	req, err := http.NewRequest(method, urlStr, body)
@@ -42,16 +66,22 @@ func PostJSONRequest(t *testing.T, urlStr string, v interface{}) *httptest.Respo
 	return DoRequest(req)
 }
 
-func TestMain(m *testing.M) {
-	initDB()
+func teardown() {
 	db.DropTable(&Answer{}, &AnswerHistory{}, &Message{}, &Question{}, &User{})
 	db.CreateTable(&Answer{}, &AnswerHistory{}, &Message{}, &Question{}, &User{})
+}
+
+func TestMain(m *testing.M) {
+	initDB()
+	initSlackServer()
+	teardown()
 	mc = martini.Classic()
 	setRouter(mc.Router)
 	os.Exit(m.Run())
 }
 
 func TestUsers(t *testing.T) {
+	defer teardown()
 	req := newRequest(t, "POST", "/users", bytes.NewBufferString("name=toto"))
 	req.Header.Set(ContentType, ContentFormURLEncoded)
 	resp1 := DoRequest(req)
@@ -68,5 +98,30 @@ func TestUsers(t *testing.T) {
 	}
 	if u.ID != 1 || u.Name != "toto" {
 		t.Fatal("Invalid user:", u)
+	}
+}
+
+func TestAddMessage(t *testing.T) {
+	defer teardown()
+	params := fmt.Sprintf("token=%s&user_id=U2147483697&text=bot: helloworld", slackOutgoingToken)
+	req := newRequest(t, "POST", "/messages", bytes.NewBufferString(params))
+	req.Header.Set(ContentType, ContentFormURLEncoded)
+	resp1 := DoRequest(req)
+	if resp1.Code != http.StatusOK {
+		t.Fatal("Message not added:", resp1.Code)
+	}
+	user := &User{}
+	if err := db.First(user, 1).Error; err != nil {
+		t.Fatal("Can't get user:", err)
+	}
+	if user.ID != 1 || user.SlackID != "UD10923" || user.Name != "name" || user.ImageURL != "http://localhost/image.jpg" {
+		t.Fatal("Invalid user:", user)
+	}
+	message := &Message{}
+	if err := db.First(message, 1).Error; err != nil {
+		t.Fatal("Can't get message:", err)
+	}
+	if message.ID != 1 || message.Message != "bot: helloworld" {
+		t.Fatal("Invalid message:", message)
 	}
 }

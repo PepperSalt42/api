@@ -15,6 +15,7 @@ var (
 
 	slackAPIToken      = os.Getenv("SLACK_API_TOKEN")
 	slackOutgoingToken = os.Getenv("SLACK_OUTGOING_TOKEN")
+	slackURL           = "https://slack.com"
 )
 
 func initDB() {
@@ -33,6 +34,7 @@ func initDB() {
 func setRouter(r martini.Router) {
 	r.Post("/users", addUser)
 	r.Get("/users/:user_id", getUser)
+	r.Post("/messages", addMessage)
 }
 
 func main() {
