@@ -6,18 +6,21 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
 var (
-	commandTVFunc = map[string]func(*SlackCommandRequest, *User) *SlackCommandResponse{
+	commandTVUsage = "Valid commands: help, question, answer, status."
+	commandTVFunc  = map[string]func(*SlackCommandRequest, *User) *SlackCommandResponse{
 		"help":     slackCommandTVHelp,
 		"question": slackCommandTVQuestion,
 		"answer":   slackCommandTVAnswer,
 		"status":   slackCommandTVStatus,
 	}
-	commandTVUsage = "Valid commands: help, question, answer, status."
+
+	argsRegexp = regexp.MustCompile("'.+'|\".+\"|\\S+")
 )
 
 // SlackCommandRequest contains the data of slack command request.
@@ -86,7 +89,62 @@ func slackCommandTVHelp(req *SlackCommandRequest, user *User) *SlackCommandRespo
 }
 
 func slackCommandTVQuestion(req *SlackCommandRequest, user *User) *SlackCommandResponse {
-	return &SlackCommandResponse{Text: commandTVUsage}
+	resp := &SlackCommandResponse{}
+	if len(req.Text) == len("question") {
+		resp.Text = commandTVUsage
+		return resp
+	}
+	argsStr := req.Text[len("question "):]
+	args := argsRegexp.FindAllString(argsStr, -1)
+	if len(args) < 4 || len(args) > 6 {
+		nbrAnswers := len(args) - 2
+		if nbrAnswers < 0 {
+			nbrAnswers = 0
+		}
+		resp.Text = fmt.Sprintf("Error: Can't set %d answers: Minimum 2 answers and maximum 4 answers", nbrAnswers)
+		return resp
+	}
+	if len(args[0]) > 128 {
+		resp.Text = "Error: Question is too long maximum 128 characters"
+		return resp
+	}
+	answerIndex, _ := strconv.Atoi(args[1])
+	answersStr := args[2:]
+	if answerIndex <= 0 || answerIndex > len(answersStr) {
+		resp.Text = "Error: Invalid right answer index"
+		return resp
+	}
+	for i, answerStr := range answersStr {
+		if len(answerStr) > 32 {
+			resp.Text = fmt.Sprintf("Error: Answer %d is too long maximum 128 characters", i+1)
+			return resp
+		}
+	}
+	tx := db.Begin()
+	question := &Question{UserID: user.ID, Sentence: args[0]}
+	if err := tx.Create(question).Error; err != nil {
+		tx.Rollback()
+		resp.Text = fmt.Sprintf("Error: Can't create question: %s", err)
+		return resp
+	}
+	for i, answerStr := range answersStr {
+		answer := &Answer{QuestionID: question.ID, Sentence: answerStr}
+		if err := tx.Create(answer).Error; err != nil {
+			tx.Rollback()
+			resp.Text = fmt.Sprintf("Error: Can't create answer: %s", err)
+			return resp
+		}
+		if i == answerIndex-1 {
+			if err := tx.Model(&question).UpdateColumn("right_answer_id", answer.ID).Error; err != nil {
+				tx.Rollback()
+				resp.Text = fmt.Sprintf("Error: Can't update question right_answer_id: %s", err)
+				return resp
+			}
+		}
+	}
+	tx.Commit()
+	resp.Text = "Your question has been submitted. Thank You!"
+	return resp
 }
 
 func slackCommandTVAnswer(req *SlackCommandRequest, user *User) *SlackCommandResponse {
@@ -99,6 +157,10 @@ func slackCommandTVAnswer(req *SlackCommandRequest, user *User) *SlackCommandRes
 	answers, err := GetAnswersByQuestionID(question.ID)
 	if err != nil {
 		resp.Text = fmt.Sprintf("Error: Can't get answers: %v", err)
+		return resp
+	}
+	if len(req.Text) <= len("answer") {
+		resp.Text = commandTVUsage
 		return resp
 	}
 	answerIndex, _ := strconv.Atoi(req.Text[len("answer "):])
@@ -117,5 +179,40 @@ func slackCommandTVAnswer(req *SlackCommandRequest, user *User) *SlackCommandRes
 }
 
 func slackCommandTVStatus(req *SlackCommandRequest, user *User) *SlackCommandResponse {
-	return &SlackCommandResponse{Text: commandTVUsage}
+	resp := &SlackCommandResponse{}
+	question, err := GetCurrentQuestion()
+	if err != nil {
+		resp.Text = fmt.Sprintf("Error: Can't get current question: %v", err)
+		return resp
+	}
+	questionUser, err := GetUser(question.UserID)
+	if err != nil {
+		resp.Text = fmt.Sprintf("Error: Can't get user associated to the current question: %v", err)
+		return resp
+	}
+	answers, err := GetAnswersByQuestionID(question.ID)
+	if err != nil {
+		resp.Text = fmt.Sprintf("Error: Can't get answers: %v", err)
+		return resp
+	}
+	topUsers, err := GetUsersTop(6)
+	if err != nil {
+		resp.Text = fmt.Sprintf("Error: Can't get top users: %v", err)
+		return resp
+	}
+	buff := &bytes.Buffer{}
+	fmt.Fprintf(buff, "Question from %s %s:\n%s\n", questionUser.FirstName, questionUser.LastName, question.Sentence)
+	lastAnswerIndex := len(answers) - 1
+	for i, answer := range answers {
+		fmt.Fprintf(buff, "%d. %s", i+1, answer.Sentence)
+		if i < lastAnswerIndex {
+			buff.WriteString(", ")
+		}
+	}
+	buff.WriteString("\n\nTop:\n")
+	for _, user := range topUsers {
+		fmt.Fprintf(buff, "%s %s: %v points\n", user.FirstName, user.LastName, user.Points)
+	}
+	resp.Text = buff.String()
+	return resp
 }

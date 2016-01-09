@@ -44,10 +44,7 @@ func initDB() {
 
 // InsertOrUpdateDB inserts or updates the value in the database.
 func InsertOrUpdateDB(query, out interface{}) error {
-	if err := db.Where(query).First(out).Error; err != nil {
-		if err != gorm.RecordNotFound {
-			return err
-		}
+	if db.Where(query).First(out).RecordNotFound() {
 		return db.Create(out).Error
 	}
 	return db.Save(out).Error

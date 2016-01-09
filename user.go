@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/go-martini/martini"
-	"github.com/gorilla/schema"
 	"github.com/jinzhu/gorm"
 )
 
@@ -52,8 +51,8 @@ func getUser(w http.ResponseWriter, r *http.Request, params martini.Params) {
 		renderJSON(w, http.StatusBadRequest, errInvalidUserID)
 		return
 	}
-	user := &User{}
-	if db.First(user, id).Error != nil {
+	user, err := GetUser(uint(id))
+	if err != nil {
 		renderJSON(w, http.StatusNotFound, errUserNotFound)
 		return
 	}
@@ -61,23 +60,29 @@ func getUser(w http.ResponseWriter, r *http.Request, params martini.Params) {
 }
 
 func getUsersTop(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
 	req := GetUsersTopRequest{
 		Count: 6,
 	}
-	if err := schema.NewDecoder().Decode(&req, q); err != nil {
+	if err := decodeRequestQuery(r, &req); err != nil {
 		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
 		return
 	}
-	var users []User
-	if err := db.Order("points desc").Limit(req.Count).Find(&users).Error; err != nil {
+	users, err := GetUsersTop(req.Count)
+	if err != nil {
 		renderJSON(w, http.StatusNotFound, Error{err.Error()})
 		return
 	}
 	renderJSON(w, http.StatusOK, users)
 }
 
-// GetUserBySlackID return an user found in DB using SlackID
+// GetUser returns the user associated to the id.
+func GetUser(id uint) (*User, error) {
+	user := &User{}
+	err := db.First(user, id).Error
+	return user, err
+}
+
+// GetUserBySlackID returns the user associated to the SlackID.
 // if user doesn't exist yet, we create it
 func GetUserBySlackID(id string) (*User, error) {
 	user, err := getUserFromSlack(id)
@@ -88,6 +93,12 @@ func GetUserBySlackID(id string) (*User, error) {
 		return nil, err
 	}
 	return user, nil
+}
+
+// GetUsersTop return the top users by points with maximum count users.
+func GetUsersTop(count int) (users []User, err error) {
+	err = db.Order("points desc").Limit(count).Find(&users).Error
+	return
 }
 
 func getUserFromSlack(id string) (*User, error) {
