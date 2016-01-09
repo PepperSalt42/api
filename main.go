@@ -17,10 +17,9 @@ import (
 var (
 	db gorm.DB
 
-	slackAPIToken       = os.Getenv("SLACK_API_TOKEN")
-	slackOutgoingToken  = os.Getenv("SLACK_OUTGOING_TOKEN")
-	questionRefreshRate = os.Getenv("QUESTION_REFRESH_RATE")
-	slackURL            = "https://slack.com"
+	slackAPIToken      = os.Getenv("SLACK_API_TOKEN")
+	slackOutgoingToken = os.Getenv("SLACK_OUTGOING_TOKEN")
+	slackURL           = "https://slack.com"
 
 	errInvalidToken        = Error{"Invalid token"}
 	errInvalidUserID       = Error{"Invalid user_id"}
@@ -73,14 +72,15 @@ func decodeRequestQuery(r *http.Request, v interface{}) error {
 }
 
 func refreshQuestion() {
+	questionRefreshRate := os.Getenv("QUESTION_REFRESH_RATE")
+	wait, err := time.ParseDuration(questionRefreshRate)
+	if err != nil {
+		log.Fatal("Can't convert question refresh rate")
+	}
 	for {
-		wait, err := time.ParseDuration(questionRefreshRate)
-		if err != nil {
-			log.Fatal("Can't convert question refresh rate")
-		}
 		time.Sleep(wait)
 		if err := nextQuestion(); err != nil {
-			log.Fatal("Can't set nextQuestion", Error{err.Error()})
+			log.Printf("[ERROR] Can't set nextQuestion: %v", err)
 		}
 	}
 }
