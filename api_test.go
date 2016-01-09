@@ -160,10 +160,10 @@ func TestGetMessages(t *testing.T) {
 	if len(data) > 2 || len(data) < 2 {
 		t.Fatal("Bad number of message:", len(data))
 	}
-	if data[0].ID != 6 {
+	if data[0].ID != 10 {
 		t.Fatal("Incorrect message get:", data[0])
 	}
-	if data[1].ID != 7 {
+	if data[1].ID != 9 {
 		t.Fatal("Incorrect message get:", data[1])
 	}
 }

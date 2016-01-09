@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/go-martini/martini"
-	"github.com/gorilla/schema"
 	"github.com/jinzhu/gorm"
 )
 
@@ -39,12 +38,8 @@ type AddUserRequest struct {
 }
 
 func addUser(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
-		return
-	}
 	var req AddUserRequest
-	if err := schema.NewDecoder().Decode(&req, r.PostForm); err != nil {
+	if err := decodeRequestForm(r, &req); err != nil {
 		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
 		return
 	}
