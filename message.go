@@ -7,12 +7,6 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-var (
-	errInvalidPayload = Error{"Payload is not a valid json"}
-	errInvalidCount   = Error{"Invalid count"}
-	errInvalidToken   = Error{"Invalid token"}
-)
-
 // Message contains all informations about a Message
 type Message struct {
 	gorm.Model
@@ -31,11 +25,11 @@ type SlackMessageRequest struct {
 func addMessage(w http.ResponseWriter, r *http.Request) {
 	var slackMessage SlackMessageRequest
 	if err := r.ParseForm(); err != nil {
-		renderJSON(w, http.StatusBadRequest, errInvalidPayload)
+		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
 		return
 	}
 	if err := schema.NewDecoder().Decode(&slackMessage, r.PostForm); err != nil {
-		renderJSON(w, http.StatusBadRequest, errInvalidPayload)
+		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
 		return
 	}
 	if slackMessage.Token != slackOutgoingToken {
