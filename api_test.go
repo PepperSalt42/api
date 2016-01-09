@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/go-martini/martini"
 )
@@ -21,6 +23,7 @@ var mc *martini.ClassicMartini
 
 func TestMain(m *testing.M) {
 	initDB()
+	rand.Seed(time.Now().Unix())
 	db.LogMode(true)
 	initSlackServer()
 	teardown()
@@ -147,6 +150,24 @@ func TestGetCurrentQuestion(t *testing.T) {
 	resp := DoRequest(req)
 	if resp.Code != http.StatusOK {
 		t.Fatal("Can't get current question:", resp)
+	}
+}
+
+func TestNextQuestion(t *testing.T) {
+	defer teardown()
+	db.Create(&User{FirstName: "John", LastName: "Doe", Points: 0})
+	db.Create(&Question{UserID: 1, Sentence: "Help?", RightAnswerID: 1, StartedAt: time.Now()})
+	db.Create(&AnswerEntry{QuestionID: 1, AnswerID: 1, UserID: 1})
+	db.Create(&Question{UserID: 1, Sentence: "Donation?", RightAnswerID: 2})
+	if err := nextQuestion(); err != nil {
+		t.Fatal("Can't execute next question:", err)
+	}
+	q, err := GetCurrentQuestion()
+	if err != nil {
+		t.Fatal("Can't get current question:", err)
+	}
+	if q.ID == 1 {
+		t.Fatal("Invalid current question:", q)
 	}
 }
 
