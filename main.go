@@ -67,7 +67,9 @@ func decodeRequestForm(r *http.Request, v interface{}) error {
 	if err := r.ParseForm(); err != nil {
 		return err
 	}
-	return schema.NewDecoder().Decode(v, r.PostForm)
+	decoder := schema.NewDecoder()
+	decoder.IgnoreUnknownKeys(true)
+	return decoder.Decode(v, r.PostForm)
 }
 
 // decodeRequestQuery decodes a request form.
