@@ -29,6 +29,24 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestGetLastImage(t *testing.T) {
+	defer teardown()
+	imageURL := "http://localhost.com/image.png"
+	userID := uint(1)
+	db.Create(&Image{URL: imageURL, UserID: userID})
+	resp := DoRequest(newRequest(t, "GET", "/images/latest", nil))
+	if resp.Code != http.StatusOK {
+		t.Fatal("Invalid status code:", resp.Code)
+	}
+	var img Image
+	if err := json.NewDecoder(resp.Body).Decode(&img); err != nil {
+		t.Fatal("Can't decode image:", err)
+	}
+	if img.ID != 1 || img.URL != imageURL || img.UserID != userID {
+		t.Fatal("Invalid image:", img)
+	}
+}
+
 func TestUsers(t *testing.T) {
 	defer teardown()
 	user := &User{FirstName: "John", LastName: "Doe"}
@@ -193,6 +211,29 @@ func TestSlackCommandStatus(t *testing.T) {
 	}
 }
 
+func TestSlackCommandImage(t *testing.T) {
+	defer teardown()
+	db.Create(&User{SlackID: "UD10923", FirstName: "John", LastName: "Doe", Points: 42})
+	imageURL := "http://localhost.com/image.png"
+	params := fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=image %s&response_url=http://localhost:4242/commands/1234/5900", slackOutgoingToken, imageURL)
+	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
+	req.Header.Set(ContentType, ContentFormURLEncoded)
+	resp := DoRequest(req)
+	if resp.Code != http.StatusOK {
+		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
+	}
+	img, err := GetLastImage()
+	if err != nil {
+		t.Fatal("Can't get last image:", err)
+	}
+	if img.URL != imageURL {
+		t.Fatalf("Invalid image url in DB: %q != %q", img.URL, imageURL)
+	}
+	if img.UserID != 1 {
+		t.Fatalf("Invalid image user_id in DB: %d != 1", img.UserID)
+	}
+}
+
 func initSlackServer() {
 	slackOutgoingToken = "legitOutgoingToken42"
 	slackAPIToken = "legitAPIToken42"
@@ -206,6 +247,7 @@ func initSlackServer() {
 	m.Post("/commands/1234/5701", slackCommandHandler("Answer Added.\nHelp? Yes"))
 	m.Post("/commands/1234/5702", slackCommandHandler("Invalid answer index.\nThere is 1 possible answers.\nSee help and status for more details"))
 	m.Post("/commands/1234/5800", slackCommandHandler("Question from John Doe:\nHelp?\n1. Yes, 2. No\n\nTop:\nJohn Doe: 42 points\n"))
+	m.Post("/commands/1234/5900", slackCommandHandler("Image added successfully!"))
 	go m.RunOnAddr(":4242")
 }
 
@@ -259,8 +301,8 @@ func DoRequest(req *http.Request) *httptest.ResponseRecorder {
 }
 
 func teardown() {
-	db.DropTable(&Answer{}, &AnswerEntry{}, &Message{}, &Question{}, &User{})
-	db.CreateTable(&Answer{}, &AnswerEntry{}, &Message{}, &Question{}, &User{})
+	db.DropTable(&Answer{}, &AnswerEntry{}, &Image{}, &Message{}, &Question{}, &User{})
+	db.CreateTable(&Answer{}, &AnswerEntry{}, &Image{}, &Message{}, &Question{}, &User{})
 }
 
 func addTestMessage(t *testing.T, userID string, text string) {

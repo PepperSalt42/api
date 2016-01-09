@@ -24,6 +24,7 @@ var (
 	errMessagesNotFound    = Error{"Messages not found"}
 	errUserNotFound        = Error{"User not found"}
 	errCurQuestionNotFound = Error{"Current question not found"}
+	errLastImageNotFound   = Error{"Last image not found"}
 )
 
 func initDB() {
@@ -36,7 +37,7 @@ func initDB() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.AutoMigrate(&Answer{}, &AnswerEntry{}, &Message{}, &Question{}, &User{})
+	db.AutoMigrate(&Answer{}, &AnswerEntry{}, &Image{}, &Message{}, &Question{}, &User{})
 }
 
 // InsertOrUpdateDB inserts or updates the value in the database.
@@ -48,6 +49,7 @@ func InsertOrUpdateDB(query, out interface{}) error {
 }
 
 func setRouter(r martini.Router) {
+	r.Get("/images/latest", getLastImage)
 	r.Get("/users/top", getUsersTop)
 	r.Get("/users/:user_id", getUser)
 	r.Post("/messages/slack", addMessage)

@@ -6,18 +6,20 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
 var (
-	commandTVUsage = "Valid commands: help, question, answer, status."
+	commandTVUsage = "Valid commands: help, question, answer, image, status."
 	commandTVFunc  = map[string]func(*SlackCommandRequest, *User) *SlackCommandResponse{
 		"help":     slackCommandTVHelp,
 		"question": slackCommandTVQuestion,
 		"answer":   slackCommandTVAnswer,
 		"status":   slackCommandTVStatus,
+		"image":    slackCommandTVImage,
 	}
 
 	argsRegexp = regexp.MustCompile("'.+'|\".+\"|\\S+")
@@ -90,7 +92,7 @@ func slackCommandTVHelp(req *SlackCommandRequest, user *User) *SlackCommandRespo
 
 func slackCommandTVQuestion(req *SlackCommandRequest, user *User) *SlackCommandResponse {
 	resp := &SlackCommandResponse{}
-	if len(req.Text) == len("question") {
+	if len(req.Text) <= len("question ") {
 		resp.Text = commandTVUsage
 		return resp
 	}
@@ -159,7 +161,7 @@ func slackCommandTVAnswer(req *SlackCommandRequest, user *User) *SlackCommandRes
 		resp.Text = fmt.Sprintf("Error: Can't get answers: %v", err)
 		return resp
 	}
-	if len(req.Text) <= len("answer") {
+	if len(req.Text) <= len("answer ") {
 		resp.Text = commandTVUsage
 		return resp
 	}
@@ -214,5 +216,24 @@ func slackCommandTVStatus(req *SlackCommandRequest, user *User) *SlackCommandRes
 		fmt.Fprintf(buff, "%s %s: %v points\n", user.FirstName, user.LastName, user.Points)
 	}
 	resp.Text = buff.String()
+	return resp
+}
+
+func slackCommandTVImage(req *SlackCommandRequest, user *User) *SlackCommandResponse {
+	resp := &SlackCommandResponse{}
+	if len(req.Text) <= len("image ") {
+		resp.Text = commandTVUsage
+		return resp
+	}
+	urlStr := req.Text[len("image "):]
+	if _, err := url.Parse(urlStr); err != nil {
+		resp.Text = "Error: Invalid image URL"
+		return resp
+	}
+	if err := db.Create(&Image{URL: urlStr, UserID: user.ID}).Error; err != nil {
+		resp.Text = fmt.Sprintf("Error: Can't add image to the database: %v", err)
+		return resp
+	}
+	resp.Text = "Image added successfully!"
 	return resp
 }
