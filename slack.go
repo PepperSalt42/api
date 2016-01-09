@@ -106,8 +106,8 @@ func slackCommandTVAnswer(req *SlackCommandRequest, user *User) *SlackCommandRes
 		resp.Text = fmt.Sprintf("Invalid answer index.\nThere is %d possible answers.\nSee help and status for more details", len(answers))
 		return resp
 	}
-	answer := answers[answerIndex]
-	answerEntry := AnswerEntry{UserID: user.ID, QuestionID: question.ID, AnswerID: answer.ID}
+	answer := answers[answerIndex-1]
+	answerEntry := &AnswerEntry{UserID: user.ID, QuestionID: question.ID, AnswerID: answer.ID}
 	if err := InsertOrUpdateDB(answerEntry, answerEntry); err != nil {
 		resp.Text = fmt.Sprintf("Error: Can't add your answers: %v", err)
 		return resp

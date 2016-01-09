@@ -11,7 +11,7 @@ type Question struct {
 	gorm.Model
 	UserID        uint
 	Sentence      string
-	RightAnswerID uint `sql:"unique"`
+	RightAnswerID uint
 	StartedAt     time.Time
 }
 

@@ -19,73 +19,6 @@ const (
 
 var mc *martini.ClassicMartini
 
-func slackCommandHandler(text string) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if contentType := r.Header.Get(ContentType); contentType != ContentJSON {
-			renderJSON(w, http.StatusBadRequest, fmt.Sprint("Invalid content type: ", contentType))
-			return
-		}
-		var slackResp SlackCommandResponse
-		if err := json.NewDecoder(r.Body).Decode(&slackResp); err != nil {
-			renderJSON(w, http.StatusBadRequest, fmt.Sprint("Can't decode to JSON: ", err))
-			return
-		}
-		if slackResp.Text != text {
-			renderJSON(w, http.StatusBadRequest, fmt.Sprintf("Invalid response text: %q != %q", slackResp.Text, text))
-			return
-		}
-		renderJSON(w, http.StatusOK, "OK")
-	}
-}
-
-func slackUserInfo(w http.ResponseWriter, r *http.Request) {
-	renderJSON(w, http.StatusOK, struct {
-		OK   bool      `json:"ok"`
-		User SlackUser `json:"user"`
-	}{
-		OK: true,
-		User: SlackUser{
-			ID:   "UD10923",
-			Name: "name",
-			Profile: SlackProfile{
-				ImageURL: "http://localhost/image.jpg",
-			},
-		},
-	})
-}
-
-func initSlackServer() {
-	slackOutgoingToken = "legitOutgoingToken42"
-	slackAPIToken = "legitAPIToken42"
-	slackURL = "http://localhost:4242"
-	m := martini.Classic()
-	m.Get("/api/users.info", slackUserInfo)
-	m.Post("/commands/1234/5678", slackCommandHandler(commandTVUsage))
-	m.Post("/commands/1234/5679", slackCommandHandler(commandTVUsage))
-	m.Post("/commands/1234/5680", slackCommandHandler("Error: Can't get current question: record not found"))
-	m.Post("/commands/1234/5681", slackCommandHandler(commandTVUsage))
-	go m.RunOnAddr(":4242")
-}
-
-func newRequest(t *testing.T, method, urlStr string, body io.Reader) *http.Request {
-	req, err := http.NewRequest(method, urlStr, body)
-	if err != nil {
-		t.Fatalf("Can't create http request: %v", err)
-	}
-	return req
-}
-
-func DoRequest(req *http.Request) *httptest.ResponseRecorder {
-	resp := httptest.NewRecorder()
-	mc.ServeHTTP(resp, req)
-	return resp
-}
-
-func teardown() {
-	db.DropTable(&Answer{}, &AnswerEntry{}, &Message{}, &Question{}, &User{})
-	db.CreateTable(&Answer{}, &AnswerEntry{}, &Message{}, &Question{}, &User{})
-}
-
 func TestMain(m *testing.M) {
 	initDB()
 	db.LogMode(true)
@@ -163,16 +96,6 @@ func TestGetMessages(t *testing.T) {
 	}
 }
 
-func addTestMessage(t *testing.T, userID string, text string) {
-	params := fmt.Sprintf("token=%s&user_id=%s&text=%s", slackOutgoingToken, userID, text)
-	req := newRequest(t, "POST", "/messages/slack", bytes.NewBufferString(params))
-	req.Header.Set(ContentType, ContentFormURLEncoded)
-	resp1 := DoRequest(req)
-	if resp1.Code != http.StatusOK {
-		t.Fatal("Message not added:", resp1.Code)
-	}
-}
-
 func TestGetUsersTop(t *testing.T) {
 	defer teardown()
 	for i := 0; i < 10; i++ {
@@ -202,19 +125,9 @@ func TestGetUsersTop(t *testing.T) {
 	}
 }
 
-func addTestUser(t *testing.T, name string) {
-	params := fmt.Sprintf("name=%s", name)
-	req := newRequest(t, "POST", "/users", bytes.NewBufferString(params))
-	req.Header.Set(ContentType, ContentFormURLEncoded)
-	resp1 := DoRequest(req)
-	if resp1.Code != http.StatusCreated {
-		t.Fatal("User not created:", resp1.Code)
-	}
-}
-
 func TestSlackCommandHelp(t *testing.T) {
 	defer teardown()
-	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=help&response_url=http://localhost:4242/commands/1234/5678", slackOutgoingToken)
+	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=help&response_url=http://localhost:4242/commands/1234/5500", slackOutgoingToken)
 	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
 	req.Header.Set(ContentType, ContentFormURLEncoded)
 	resp := DoRequest(req)
@@ -225,7 +138,7 @@ func TestSlackCommandHelp(t *testing.T) {
 
 func TestSlackCommandQuestion(t *testing.T) {
 	defer teardown()
-	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=question&response_url=http://localhost:4242/commands/1234/5679", slackOutgoingToken)
+	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=question&response_url=http://localhost:4242/commands/1234/5600", slackOutgoingToken)
 	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
 	req.Header.Set(ContentType, ContentFormURLEncoded)
 	resp := DoRequest(req)
@@ -236,7 +149,37 @@ func TestSlackCommandQuestion(t *testing.T) {
 
 func TestSlackCommandAnswer(t *testing.T) {
 	defer teardown()
-	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=answer&response_url=http://localhost:4242/commands/1234/5680", slackOutgoingToken)
+	params := fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=answer&response_url=http://localhost:4242/commands/1234/5700", slackOutgoingToken)
+	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
+	req.Header.Set(ContentType, ContentFormURLEncoded)
+	resp := DoRequest(req)
+	if resp.Code != http.StatusOK {
+		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
+	}
+
+	addTestUser(t, "user1")
+	db.Create(&Question{UserID: 1, Sentence: "Help?", RightAnswerID: 1})
+	db.Create(&Answer{QuestionID: 1, Sentence: "Yes"})
+	params = fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=answer 1&response_url=http://localhost:4242/commands/1234/5701", slackOutgoingToken)
+	req = newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
+	req.Header.Set(ContentType, ContentFormURLEncoded)
+	resp = DoRequest(req)
+	if resp.Code != http.StatusOK {
+		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
+	}
+
+	params = fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=answer 2&response_url=http://localhost:4242/commands/1234/5702", slackOutgoingToken)
+	req = newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
+	req.Header.Set(ContentType, ContentFormURLEncoded)
+	resp = DoRequest(req)
+	if resp.Code != http.StatusOK {
+		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
+	}
+}
+
+func TestSlackCommandStatus(t *testing.T) {
+	defer teardown()
+	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=status&response_url=http://localhost:4242/commands/1234/5800", slackOutgoingToken)
 	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
 	req.Header.Set(ContentType, ContentFormURLEncoded)
 	resp := DoRequest(req)
@@ -245,13 +188,90 @@ func TestSlackCommandAnswer(t *testing.T) {
 	}
 }
 
-func TestSlackCommandStatus(t *testing.T) {
-	defer teardown()
-	params := fmt.Sprintf("token=%s&user_id=UD10923$command=tv&text=status&response_url=http://localhost:4242/commands/1234/5681", slackOutgoingToken)
-	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
+func initSlackServer() {
+	slackOutgoingToken = "legitOutgoingToken42"
+	slackAPIToken = "legitAPIToken42"
+	slackURL = "http://localhost:4242"
+	m := martini.Classic()
+	m.Get("/api/users.info", slackUserInfo)
+	m.Post("/commands/1234/5500", slackCommandHandler(commandTVUsage))
+	m.Post("/commands/1234/5600", slackCommandHandler(commandTVUsage))
+	m.Post("/commands/1234/5700", slackCommandHandler("Error: Can't get current question: record not found"))
+	m.Post("/commands/1234/5701", slackCommandHandler("Answer Added.\nHelp? Yes"))
+	m.Post("/commands/1234/5702", slackCommandHandler("Invalid answer index.\nThere is 1 possible answers.\nSee help and status for more details"))
+	m.Post("/commands/1234/5800", slackCommandHandler(commandTVUsage))
+	go m.RunOnAddr(":4242")
+}
+
+func slackUserInfo(w http.ResponseWriter, r *http.Request) {
+	renderJSON(w, http.StatusOK, struct {
+		OK   bool      `json:"ok"`
+		User SlackUser `json:"user"`
+	}{
+		OK: true,
+		User: SlackUser{
+			ID:   "UD10923",
+			Name: "name",
+			Profile: SlackProfile{
+				ImageURL: "http://localhost/image.jpg",
+			},
+		},
+	})
+}
+func slackCommandHandler(text string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if contentType := r.Header.Get(ContentType); contentType != ContentJSON {
+			renderJSON(w, http.StatusBadRequest, fmt.Sprint("Invalid content type: ", contentType))
+			return
+		}
+		var slackResp SlackCommandResponse
+		if err := json.NewDecoder(r.Body).Decode(&slackResp); err != nil {
+			renderJSON(w, http.StatusBadRequest, fmt.Sprint("Can't decode to JSON: ", err))
+			return
+		}
+		if slackResp.Text != text {
+			renderJSON(w, http.StatusBadRequest, fmt.Sprintf("Invalid response text: %q != %q", slackResp.Text, text))
+			return
+		}
+		renderJSON(w, http.StatusOK, "OK")
+	}
+}
+
+func newRequest(t *testing.T, method, urlStr string, body io.Reader) *http.Request {
+	req, err := http.NewRequest(method, urlStr, body)
+	if err != nil {
+		t.Fatalf("Can't create http request: %v", err)
+	}
+	return req
+}
+
+func DoRequest(req *http.Request) *httptest.ResponseRecorder {
+	resp := httptest.NewRecorder()
+	mc.ServeHTTP(resp, req)
+	return resp
+}
+
+func teardown() {
+	db.DropTable(&Answer{}, &AnswerEntry{}, &Message{}, &Question{}, &User{})
+	db.CreateTable(&Answer{}, &AnswerEntry{}, &Message{}, &Question{}, &User{})
+}
+
+func addTestMessage(t *testing.T, userID string, text string) {
+	params := fmt.Sprintf("token=%s&user_id=%s&text=%s", slackOutgoingToken, userID, text)
+	req := newRequest(t, "POST", "/messages/slack", bytes.NewBufferString(params))
 	req.Header.Set(ContentType, ContentFormURLEncoded)
-	resp := DoRequest(req)
-	if resp.Code != http.StatusOK {
-		t.Fatal("Invalid response:", resp.Code, resp.Body.String())
+	resp1 := DoRequest(req)
+	if resp1.Code != http.StatusOK {
+		t.Fatal("Message not added:", resp1.Code)
+	}
+}
+
+func addTestUser(t *testing.T, name string) {
+	params := fmt.Sprintf("name=%s", name)
+	req := newRequest(t, "POST", "/users", bytes.NewBufferString(params))
+	req.Header.Set(ContentType, ContentFormURLEncoded)
+	resp1 := DoRequest(req)
+	if resp1.Code != http.StatusCreated {
+		t.Fatal("User not created:", resp1.Code)
 	}
 }
