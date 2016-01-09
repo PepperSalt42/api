@@ -78,7 +78,7 @@ func getUpdateUserBySlackID(id string) (*User, error) {
 			return nil, err
 		}
 	} else {
-		if err := db.Update(user).Error; err != nil {
+		if err := db.Save(user).Error; err != nil {
 			return nil, err
 		}
 	}

@@ -34,7 +34,8 @@ func initDB() {
 func setRouter(r martini.Router) {
 	r.Post("/users", addUser)
 	r.Get("/users/:user_id", getUser)
-	r.Post("/messages", addMessage)
+	r.Post("/messages/slack", addMessage)
+	r.Get("/messages", getMessages)
 }
 
 func main() {

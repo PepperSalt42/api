@@ -20,11 +20,17 @@ type Message struct {
 	Message string
 }
 
-// SlackMessageRequest is an object version of json received from a Slack request
+// SlackMessageRequest contains the data of slack command request
 type SlackMessageRequest struct {
 	Token  string `schema:"token"`
 	UserID string `schema:"user_id"`
 	Text   string `schema:"text"`
+}
+
+// GetMessagesRequest contains the data of slack command request
+type GetMessagesRequest struct {
+	FromID int `schema:"from_id,omitempty"`
+	Count  int `schema:"count,omitempty"`
 }
 
 // addMessage is a route that slack calls to send us new message
@@ -56,4 +62,22 @@ func addMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func getMessages(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	req := GetMessagesRequest{
+		FromID: 0,
+		Count:  10,
+	}
+	if err := schema.NewDecoder().Decode(&req, q); err != nil {
+		renderJSON(w, http.StatusBadRequest, errInvalidPayload)
+		return
+	}
+	messages := []Message{}
+	if db.Limit(req.Count).Find(&messages, "id > ?", req.FromID).Error != nil {
+		renderJSON(w, http.StatusNotFound, errUserNotFound)
+		return
+	}
+	renderJSON(w, http.StatusOK, messages)
 }
