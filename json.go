@@ -20,6 +20,7 @@ type Error struct {
 	Error string `json:"error"`
 }
 
+// renderJSON renders an object in json.
 func renderJSON(w http.ResponseWriter, status int, v interface{}) {
 	w.Header().Set(ContentType, ContentJSON)
 	w.WriteHeader(status)

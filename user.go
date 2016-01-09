@@ -11,7 +11,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// User contains all informations about an User
+// User contains information about an User.
 type User struct {
 	gorm.Model
 	SlackID   string `sql:"unique"`
@@ -21,13 +21,13 @@ type User struct {
 	Points    uint
 }
 
-// SlackUser contains the data of slack command request
+// SlackUser contains the data of slack command request.
 type SlackUser struct {
 	ID      string       `json:"id"`
 	Profile SlackProfile `json:"profile"`
 }
 
-// SlackProfile contains the data contained in SlackUser structure
+// SlackProfile contains the data contained in SlackUser structure.
 type SlackProfile struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
@@ -40,11 +40,12 @@ type AddUserRequest struct {
 	LastName  string `schema:"last_name"`
 }
 
-// GetUsersTopRequest contains the data of add user request.
+// GetUsersTopRequest contains the data of get users top request.
 type GetUsersTopRequest struct {
 	Count int `schema:"count"`
 }
 
+// getUser returns an user using http protocol.
 func getUser(w http.ResponseWriter, r *http.Request, params martini.Params) {
 	id, err := strconv.ParseUint(params["user_id"], 10, 64)
 	if err != nil {
@@ -59,6 +60,7 @@ func getUser(w http.ResponseWriter, r *http.Request, params martini.Params) {
 	renderJSON(w, http.StatusOK, user)
 }
 
+// getUsersTop returns the top list of players (by points).
 func getUsersTop(w http.ResponseWriter, r *http.Request) {
 	req := GetUsersTopRequest{
 		Count: 6,
@@ -83,7 +85,7 @@ func GetUser(id uint) (*User, error) {
 }
 
 // GetUserBySlackID returns the user associated to the SlackID.
-// if user doesn't exist yet, we create it
+// if user doesn't exist yet, we create it.
 func GetUserBySlackID(id string) (*User, error) {
 	user, err := getUserFromSlack(id)
 	if err != nil {
@@ -101,6 +103,7 @@ func GetUsersTop(count int) (users []User, err error) {
 	return
 }
 
+// getUserFromSlack calls slacckAPI to get user information and returns an user object.
 func getUserFromSlack(id string) (*User, error) {
 	reqURL := fmt.Sprintf("%s/api/users.info?token=%s&user=%s", slackURL, slackAPIToken, id)
 	resp, err := http.Get(reqURL)

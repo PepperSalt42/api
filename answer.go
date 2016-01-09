@@ -4,7 +4,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// Answer contains all informations about an Answer
+// Answer contains information about an answer.
 type Answer struct {
 	gorm.Model
 	QuestionID uint

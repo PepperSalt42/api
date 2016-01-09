@@ -13,6 +13,7 @@ type Image struct {
 	URL    string
 }
 
+// getLastImage return last image using http protocol.
 func getLastImage(w http.ResponseWriter, r *http.Request) {
 	img, err := GetLastImage()
 	if err != nil {

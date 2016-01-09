@@ -6,27 +6,27 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// Message contains all informations about a Message
+// Message contains information about a message.
 type Message struct {
 	gorm.Model
 	UserID  uint
 	Message string
 }
 
-// SlackMessageRequest contains the data of slack command request
+// SlackMessageRequest contains the data of slack command request.
 type SlackMessageRequest struct {
 	Token  string `schema:"token"`
 	UserID string `schema:"user_id"`
 	Text   string `schema:"text"`
 }
 
-// GetMessagesRequest contains the data of slack command request
+// GetMessagesRequest contains the data of slack command request.
 type GetMessagesRequest struct {
 	FromID int `schema:"from_id,omitempty"`
 	Count  int `schema:"count,omitempty"`
 }
 
-// addMessage is a route that slack calls to send us new message
+// addMessage add message in DB.
 func addMessage(w http.ResponseWriter, r *http.Request) {
 	var req SlackMessageRequest
 	if err := decodeRequestForm(r, &req); err != nil {
@@ -53,6 +53,7 @@ func addMessage(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// getMessages return messages contained in DB using omittive parameters.
 func getMessages(w http.ResponseWriter, r *http.Request) {
 	req := GetMessagesRequest{
 		FromID: 0,

@@ -29,6 +29,7 @@ var (
 	errLastImageNotFound   = Error{"Last image not found"}
 )
 
+// initDB open DB connection.
 func initDB() {
 	var err error
 	user := os.Getenv("MYSQL_USER")
@@ -42,7 +43,7 @@ func initDB() {
 	db.AutoMigrate(&Answer{}, &AnswerEntry{}, &Image{}, &Message{}, &Question{}, &User{})
 }
 
-// InsertOrUpdateDB inserts or updates the value in the database.
+// InsertOrUpdateDB inserts or updates the values in the database.
 func InsertOrUpdateDB(query, out interface{}) error {
 	if db.Where(query).First(out).RecordNotFound() {
 		return db.Create(out).Error
@@ -50,6 +51,7 @@ func InsertOrUpdateDB(query, out interface{}) error {
 	return db.Save(out).Error
 }
 
+// setRouter set all API routes.
 func setRouter(r martini.Router) {
 	r.Get("/images/latest", getLastImage)
 	r.Get("/users/top", getUsersTop)
@@ -60,6 +62,7 @@ func setRouter(r martini.Router) {
 	r.Post("/slack/commands/tv", slackCommandTV)
 }
 
+// decodeRequestForm decodes a request form.
 func decodeRequestForm(r *http.Request, v interface{}) error {
 	if err := r.ParseForm(); err != nil {
 		return err
@@ -67,10 +70,12 @@ func decodeRequestForm(r *http.Request, v interface{}) error {
 	return schema.NewDecoder().Decode(v, r.PostForm)
 }
 
+// decodeRequestQuery decodes a request form.
 func decodeRequestQuery(r *http.Request, v interface{}) error {
 	return schema.NewDecoder().Decode(v, r.URL.Query())
 }
 
+// refreshQuestion update current question every X time.
 func refreshQuestion() {
 	questionRefreshRate := os.Getenv("QUESTION_REFRESH_RATE")
 	wait, err := time.ParseDuration(questionRefreshRate)
@@ -85,6 +90,7 @@ func refreshQuestion() {
 	}
 }
 
+// main application.
 func main() {
 	initDB()
 	rand.Seed(time.Now().Unix())
