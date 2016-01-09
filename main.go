@@ -18,6 +18,7 @@ var (
 	db gorm.DB
 
 	slackAPIToken      = os.Getenv("SLACK_API_TOKEN")
+	slackCommandToken  = os.Getenv("SLACK_COMMAND_TOKEN")
 	slackOutgoingToken = os.Getenv("SLACK_OUTGOING_TOKEN")
 	slackURL           = "https://slack.com"
 

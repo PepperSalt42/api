@@ -103,7 +103,7 @@ func GetUsersTop(count int) (users []User, err error) {
 	return
 }
 
-// getUserFromSlack calls slacckAPI to get user information and returns an user object.
+// getUserFromSlack calls slackAPI to get user information and returns an user object.
 func getUserFromSlack(id string) (*User, error) {
 	reqURL := fmt.Sprintf("%s/api/users.info?token=%s&user=%s", slackURL, slackAPIToken, id)
 	resp, err := http.Get(reqURL)

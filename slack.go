@@ -45,7 +45,7 @@ func slackCommandTV(w http.ResponseWriter, r *http.Request) {
 		renderJSON(w, http.StatusBadRequest, Error{err.Error()})
 		return
 	}
-	if req.Token != slackOutgoingToken {
+	if req.Token != slackCommandToken {
 		renderJSON(w, http.StatusBadRequest, errInvalidToken)
 		return
 	}
