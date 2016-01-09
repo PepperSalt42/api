@@ -31,9 +31,9 @@ var (
 
 func initDB() {
 	var err error
-	user := os.Getenv("DB_ENV_MYSQL_USER")
-	password := os.Getenv("DB_ENV_MYSQL_PASSWORD")
-	dbname := os.Getenv("DB_ENV_MYSQL_DATABASE")
+	user := os.Getenv("MYSQL_USER")
+	password := os.Getenv("MYSQL_PASSWORD")
+	dbname := os.Getenv("MYSQL_DATABASE")
 	sqlConnection := fmt.Sprintf("%s:%s@tcp(db:3306)/%s?charset=utf8&parseTime=True&loc=Local", user, password, dbname)
 	db, err = gorm.Open("mysql", sqlConnection)
 	if err != nil {

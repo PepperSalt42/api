@@ -6,6 +6,7 @@ api:
     - ./mysql:/var/lib/mysql
   links:
     - db
+  env_file: .env
 db:
   image: mariadb:10.1.10
   env_file: .env
