@@ -8,13 +8,19 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// Question contains all informations about a question
+// Question contains all informations about a question.
 type Question struct {
 	gorm.Model
 	UserID        uint
 	Sentence      string
-	RightAnswerID uint
+	RightAnswerID uint `json:"-"`
 	StartedAt     time.Time
+}
+
+// GetCurrentQuestionAnswer contains the response to getCurrentQuestion.
+type GetCurrentQuestionAnswer struct {
+	Question *Question
+	Answers  []string
 }
 
 // getCurrentQuestion returns current question
@@ -24,7 +30,16 @@ func getCurrentQuestion(w http.ResponseWriter, r *http.Request) {
 		renderJSON(w, http.StatusNotFound, errCurQuestionNotFound)
 		return
 	}
-	renderJSON(w, http.StatusOK, question)
+	answers, err := GetAnswersByQuestionID(question.ID)
+	if err != nil {
+		renderJSON(w, http.StatusNotFound, errCurQuestionNotFound)
+		return
+	}
+	resp := GetCurrentQuestionAnswer{Question: question}
+	for _, answer := range answers {
+		resp.Answers = append(resp.Answers, answer.Sentence)
+	}
+	renderJSON(w, http.StatusOK, &resp)
 }
 
 // GetCurrentQuestion returns the current question
