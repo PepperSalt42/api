@@ -11,7 +11,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// User contains information about an User.
+// User contains information about a user.
 type User struct {
 	gorm.Model
 	SlackID   string `sql:"unique"`
@@ -45,7 +45,7 @@ type GetUsersTopRequest struct {
 	Count int `schema:"count"`
 }
 
-// getUser returns an user.
+// getUser returns a user.
 func getUser(w http.ResponseWriter, r *http.Request, params martini.Params) {
 	id, err := strconv.ParseUint(params["user_id"], 10, 64)
 	if err != nil {
@@ -103,7 +103,7 @@ func GetUsersTop(count int) (users []User, err error) {
 	return
 }
 
-// getUserFromSlack calls slackAPI to get user information and returns an user object.
+// getUserFromSlack calls slackAPI to get user information and returns a user object.
 func getUserFromSlack(id string) (*User, error) {
 	reqURL := fmt.Sprintf("%s/api/users.info?token=%s&user=%s", slackURL, slackAPIToken, id)
 	resp, err := http.Get(reqURL)
