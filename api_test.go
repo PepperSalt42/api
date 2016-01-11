@@ -19,16 +19,15 @@ const (
 	ContentFormURLEncoded = "application/x-www-form-urlencoded"
 )
 
-var mc *martini.ClassicMartini
+var mc *martini.Martini
 
 func TestMain(m *testing.M) {
-	initDB()
 	rand.Seed(time.Now().Unix())
+	InitDB()
 	db.LogMode(true)
 	initSlackServer()
 	teardown()
-	mc = martini.Classic()
-	setRouter(mc.Router)
+	mc = NewWebService()
 	os.Exit(m.Run())
 }
 
@@ -173,7 +172,7 @@ func TestNextQuestion(t *testing.T) {
 
 func TestSlackCommandHelp(t *testing.T) {
 	defer teardown()
-	params := fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=help&response_url=http://localhost:4242/commands/1234/5500", slackOutgoingToken)
+	params := fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=help&response_url=http://localhost:4242/commands/1234/5500", slackCommandToken)
 	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
 	req.Header.Set(ContentType, ContentFormURLEncoded)
 	resp := DoRequest(req)
@@ -185,8 +184,8 @@ func TestSlackCommandHelp(t *testing.T) {
 func TestSlackCommandQuestion(t *testing.T) {
 	defer teardown()
 	bodies := []string{
-		fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=question&response_url=http://localhost:4242/commands/1234/5600", slackOutgoingToken),
-		fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=question Alive? 1 true false&response_url=http://localhost:4242/commands/1234/5601", slackOutgoingToken),
+		fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=question&response_url=http://localhost:4242/commands/1234/5600", slackCommandToken),
+		fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=question Alive? 1 true false&response_url=http://localhost:4242/commands/1234/5601", slackCommandToken),
 	}
 	for _, bodyStr := range bodies {
 		req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(bodyStr))
@@ -203,9 +202,9 @@ func TestSlackCommandAnswer(t *testing.T) {
 	db.Create(&Question{UserID: 1, Sentence: "Help?", RightAnswerID: 1})
 	db.Create(&Answer{QuestionID: 1, Sentence: "Yes"})
 	bodies := []string{
-		fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=answer&response_url=http://localhost:4242/commands/1234/5700", slackOutgoingToken),
-		fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=answer 1&response_url=http://localhost:4242/commands/1234/5701", slackOutgoingToken),
-		fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=answer 2&response_url=http://localhost:4242/commands/1234/5702", slackOutgoingToken),
+		fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=answer&response_url=http://localhost:4242/commands/1234/5700", slackCommandToken),
+		fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=answer 1&response_url=http://localhost:4242/commands/1234/5701", slackCommandToken),
+		fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=answer 2&response_url=http://localhost:4242/commands/1234/5702", slackCommandToken),
 	}
 	for _, bodyStr := range bodies {
 		req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(bodyStr))
@@ -223,7 +222,7 @@ func TestSlackCommandStatus(t *testing.T) {
 	db.Create(&Question{UserID: 1, Sentence: "Help?", RightAnswerID: 1})
 	db.Create(&Answer{QuestionID: 1, Sentence: "Yes"})
 	db.Create(&Answer{QuestionID: 1, Sentence: "No"})
-	params := fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=status&response_url=http://localhost:4242/commands/1234/5800", slackOutgoingToken)
+	params := fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=status&response_url=http://localhost:4242/commands/1234/5800", slackCommandToken)
 	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
 	req.Header.Set(ContentType, ContentFormURLEncoded)
 	resp := DoRequest(req)
@@ -236,7 +235,7 @@ func TestSlackCommandImage(t *testing.T) {
 	defer teardown()
 	db.Create(&User{SlackID: "UD10923", FirstName: "John", LastName: "Doe", Points: 42})
 	imageURL := "http://localhost.com/image.png"
-	params := fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=image %s&response_url=http://localhost:4242/commands/1234/5900", slackOutgoingToken, imageURL)
+	params := fmt.Sprintf("token=%s&user_id=UD10923&command=tv&text=image %s&response_url=http://localhost:4242/commands/1234/5900", slackCommandToken, imageURL)
 	req := newRequest(t, "POST", "/slack/commands/tv", bytes.NewBufferString(params))
 	req.Header.Set(ContentType, ContentFormURLEncoded)
 	resp := DoRequest(req)
@@ -256,6 +255,7 @@ func TestSlackCommandImage(t *testing.T) {
 }
 
 func initSlackServer() {
+	slackCommandToken = "legitCommandToken42"
 	slackOutgoingToken = "legitOutgoingToken42"
 	slackAPIToken = "legitAPIToken42"
 	slackURL = "http://localhost:4242"
@@ -327,7 +327,7 @@ func teardown() {
 }
 
 func addTestMessage(t *testing.T, userID string, text string) {
-	params := fmt.Sprintf("token=%s&user_id=%s&text=%s", slackOutgoingToken, userID, text)
+	params := fmt.Sprintf("token=%s&user_id=%s&text=%s&timestamp=%d", slackOutgoingToken, userID, text, time.Now().Unix())
 	req := newRequest(t, "POST", "/messages/slack", bytes.NewBufferString(params))
 	req.Header.Set(ContentType, ContentFormURLEncoded)
 	resp1 := DoRequest(req)

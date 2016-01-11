@@ -1,12 +1,17 @@
 package main
 
 import (
+	"errors"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/jinzhu/gorm"
 )
+
+var errNoQuestionAvailable = errors.New("No question available")
 
 // Question contains information about a question.
 type Question struct {
@@ -23,7 +28,7 @@ type GetCurrentQuestionAnswer struct {
 	Answers  []string
 }
 
-// getCurrentQuestion returns current question using http protocol.
+// getCurrentQuestion returns current question.
 func getCurrentQuestion(w http.ResponseWriter, r *http.Request) {
 	question, err := GetCurrentQuestion()
 	if err != nil {
@@ -47,24 +52,43 @@ func GetCurrentQuestion() (*Question, error) {
 	return getCurrentQuestionWithTX(&db)
 }
 
-// getCurrentQuestionWithTX return the current question using DB transaction.
+// getCurrentQuestionWithTX returns the current question using database transaction.
 func getCurrentQuestionWithTX(tx *gorm.DB) (*Question, error) {
 	question := &Question{}
 	err := tx.Order("started_at").Last(question).Error
 	return question, err
 }
 
-// nextQuestion select a new question and update users points.
+// refreshQuestion updates current question every X time.
+func refreshQuestion() {
+	questionRefreshRate := os.Getenv("QUESTION_REFRESH_RATE")
+	wait, err := time.ParseDuration(questionRefreshRate)
+	if err != nil {
+		log.Fatal("Can't convert question refresh rate")
+	}
+	for {
+		time.Sleep(wait)
+		if err := nextQuestion(); err != nil {
+			log.WithField("err", err).Error("Can't set nextQuestion")
+		}
+	}
+}
+
+// nextQuestion selects a new random question and updates users points.
 func nextQuestion() error {
 	tx := db.Begin()
 	defer tx.Commit()
+	nextQuestion, err := getNextQuestion(tx)
+	if err != nil {
+		return err
+	}
 	if err := updateUsersPoints(tx); err != nil {
 		return err
 	}
-	return randomizeQuestion(tx)
+	return tx.Model(nextQuestion).UpdateColumn("started_at", time.Now()).Error
 }
 
-// updateUsersPoints update users points.
+// updateUsersPoints updates users points.
 func updateUsersPoints(tx *gorm.DB) error {
 	q, err := getCurrentQuestionWithTX(tx)
 	if err != nil {
@@ -73,12 +97,14 @@ func updateUsersPoints(tx *gorm.DB) error {
 	return tx.Exec("UPDATE `users` JOIN `answer_entries` ON users.id = answer_entries.user_id SET users.points = users.points + 1 WHERE answer_entries.question_id = ? AND answer_entries.answer_id = ?", q.ID, q.RightAnswerID).Error
 }
 
-// randomizeQuestion select a new current question randomly.
-func randomizeQuestion(tx *gorm.DB) error {
+// getNextQuestion returns the next random question.
+func getNextQuestion(tx *gorm.DB) (*Question, error) {
 	var questions []Question
 	if err := tx.Where("started_at = ?", 0).Find(&questions).Error; err != nil {
-		return err
+		return nil, err
 	}
-	question := &questions[rand.Intn(len(questions))]
-	return tx.Model(question).UpdateColumn("started_at", time.Now()).Error
+	if len(questions) == 0 {
+		return nil, errNoQuestionAvailable
+	}
+	return &questions[rand.Intn(len(questions))], nil
 }

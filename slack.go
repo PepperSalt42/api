@@ -7,12 +7,18 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
 var (
+	slackAPIToken      = os.Getenv("SLACK_API_TOKEN")
+	slackCommandToken  = os.Getenv("SLACK_COMMAND_TOKEN")
+	slackOutgoingToken = os.Getenv("SLACK_OUTGOING_TOKEN")
+	slackURL           = "https://slack.com"
+
 	commandTVUsage = "Valid commands: help, question, answer, image, status."
 	commandTVFunc  = map[string]func(*SlackCommandRequest, *User) *SlackCommandResponse{
 		"help":     slackCommandTVHelp,

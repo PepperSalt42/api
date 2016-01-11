@@ -45,7 +45,7 @@ type GetUsersTopRequest struct {
 	Count int `schema:"count"`
 }
 
-// getUser returns an user using http protocol.
+// getUser returns an user.
 func getUser(w http.ResponseWriter, r *http.Request, params martini.Params) {
 	id, err := strconv.ParseUint(params["user_id"], 10, 64)
 	if err != nil {
@@ -60,7 +60,7 @@ func getUser(w http.ResponseWriter, r *http.Request, params martini.Params) {
 	renderJSON(w, http.StatusOK, user)
 }
 
-// getUsersTop returns the top list of players (by points).
+// getUsersTop returns the users top by points.
 func getUsersTop(w http.ResponseWriter, r *http.Request) {
 	req := GetUsersTopRequest{
 		Count: 6,
