@@ -9,7 +9,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-var db gorm.DB
+var db *gorm.DB
 
 // InitDB opens the database with the informations from the env.
 // Automigrate all the tables.
