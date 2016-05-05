@@ -49,7 +49,7 @@ func getCurrentQuestion(w http.ResponseWriter, r *http.Request) {
 
 // GetCurrentQuestion returns the current question.
 func GetCurrentQuestion() (*Question, error) {
-	return getCurrentQuestionWithTX(&db)
+	return getCurrentQuestionWithTX(db)
 }
 
 // getCurrentQuestionWithTX returns the current question using database transaction.
